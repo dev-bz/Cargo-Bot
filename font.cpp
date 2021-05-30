@@ -33,6 +33,10 @@ extern "C" int drawText(unsigned char c, float *cood, float *pos, float size) {
 		pos[7] += sc * (-fontBottom - t.yoff);
 		pos[3] = pos[5] = pos[1] - sc * (t.y1 - t.y0);
 	} else {
+		pos[0]=pos[2]=
+		pos[1]=pos[7]=768;
+		pos[4]=pos[6]=
+		pos[3]=pos[5]=0;
 		cood[0] = 1;
 		cood[1] = 0;
 		cood[2] = 1;

@@ -21,6 +21,7 @@ extern "C" {
 struct saved_state {
 	int32_t x;
 	int32_t y;
+	int32_t z;
 };
 /**
  * Shared state for our app.
@@ -59,12 +60,11 @@ void ResizeGL(int w, int h) {
 #endif
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-#ifdef FILLSIZE
-	glScalef((float)h / w / FILLSIZE, 1 / FILLSIZE, 1);
-#else
-#define FILLSIZE 384.0f
-	glScalef(1 / FILLSIZE, (float)w / h / FILLSIZE, 1);
+#ifndef FILLSIZE
+#define FILLSIZE 384
 #endif
+	// glScalef((float)h / w / FILLSIZE, 1.0f / FILLSIZE, 1);
+	glScalef(1.0f / FILLSIZE, (float)w / h / FILLSIZE, 1);
 	glMatrixMode(GL_MODELVIEW);
 }
 int pushMatrix(lua_State *L) {
@@ -133,22 +133,13 @@ int stroke(lua_State *L) {
 	return 0;
 }
 float fillc[4] = {1, 1, 1, 1};
-unsigned char filli[4] = {1, 1, 1, 1};
 int fill(lua_State *L) {
 	int top = lua_gettop(L);
 	if (top == 4) {
-		float r = lua_tonumber(L, -4);
-		float g = lua_tonumber(L, -3);
-		float b = lua_tonumber(L, -2);
-		float a = lua_tonumber(L, -1);
-		fillc[0] = r / 255;
-		fillc[1] = g / 255;
-		fillc[2] = b / 255;
-		fillc[3] = a / 255;
-		filli[0] = r;
-		filli[1] = g;
-		filli[2] = b;
-		filli[3] = a;
+		fillc[0] = lua_tonumber(L, -4) / 255;
+		fillc[1] = lua_tonumber(L, -3) / 255;
+		fillc[2] = lua_tonumber(L, -2) / 255;
+		fillc[3] = lua_tonumber(L, -1) / 255;
 	} else if (lua_istable(L, -1)) {
 		lua_pushstring(L, "r");
 		lua_gettable(L, -2);
@@ -166,7 +157,6 @@ int fill(lua_State *L) {
 		lua_gettable(L, -2);
 		fillc[3] = lua_tonumber(L, -1) / 255;
 		lua_pop(L, 1);
-		// LOGW("============================%f,%f,%f,%f\n", fillc[0], fillc[1],fillc[2], fillc[3]);
 	}
 	return 0;
 }
@@ -262,36 +252,6 @@ int mkContext(lua_State *L) {
 		textureSize += nw * nh * 4;
 		tex = textures;
 		++textures;
-		// glReadBuffer(GL_BACK);
-		// glReadPixels(0, 0, nw, nh, GL_RGBA, GL_UNSIGNED_BYTE, nd);
-		// glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, nw, nh, 0, GL_RGBA, GL_UNSIGNED_BYTE, nd);
-		// glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, nw, nh, 0);
-		/*int index = 0;
-		int nW = nw;
-		int nH = nh;
-		while (nW > 4 && nH > 4) {
-			nw >>= 1;
-			nh >>= 1;
-			unsigned char *tmap = (unsigned char *)malloc(nw * nh * 4);
-			for (int x = 0; x < nw; ++x)
-				for (int y = 0; y < nh; ++y) {
-					int i = (x + nW * y) * 4;
-					for (int j = 0; j < 4; ++j) {
-						int a = nd[i + j];
-						int b = nd[i + 4 + j];
-						int c = nd[i + nW * 4 + j];
-						int d = nd[i + nW * 4 + 4 + j];
-						tmap[(x + nw * y) * 4 + j] = (a + b + c + d) / 4;
-					}
-				}
-			free(nd);
-			nd = tmap;
-			nH = nh;
-			nW = nw;
-			glTexImage2D(GL_TEXTURE_2D, ++index, GL_ALPHA, nW, nH, 0, GL_ALPHA, GL_UNSIGNED_BYTE, nd);
-		}*/
-		// free(px);
-		// free(nd);
 		lua_pushinteger(L, tex);
 	}
 	glPopMatrix();
@@ -346,12 +306,12 @@ int glRect(lua_State *L) {
 	return 0;
 }
 void testText(float size) {
-	float x = 0, y = 0, w = size, h = size;
+	// float x = 0, y = 0, w = size, h = size;
 	glColor4f(1, 1, 1, 1);
 	glBegin(GL_TRIANGLE_FAN);
 	// glColor3f(1.0f, 1.0f, 1.0f);
 	// glTexCoord2f(0, 1, 1, 0);
-	glVertex2f(0, 1, x + w, y + h);
+	/*glVertex2f(0, 1, x + w, y + h);
 	// glColor3f(1.0f, 0.0f, 1.0f);
 	// glTexCoord2f(2, 3, 1, 1);
 	glVertex2f(2, 3, x + w, y - h);
@@ -360,8 +320,8 @@ void testText(float size) {
 	glVertex2f(4, 5, x - w, y - h);
 	// glColor3f(0.0f, 1.0f, 1.0f);
 	// glTexCoord2f(6, 7, 0, 0);
-	glVertex2f(6, 7, x - w, y + h);
-	drawText(0, quadTexCoords, quadVertices, h + h);
+	glVertex2f(6, 7, x - w, y + h);*/
+	drawText(0, quadTexCoords, quadVertices, 0);
 	glEnd(4);
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
@@ -440,41 +400,21 @@ int gldraw(lua_State *L) {
 			maps[t].tex = d_makeTextureFromFile(textureData + maps[t].offset, NULL, NULL);
 	}
 	glBindTexture(GL_TEXTURE_2D, maps[t].tex);
-#if 1
-	if (1) {
-		// if(!t)glColor4f(0.0f, 0.0f, 0.0f,0.45f);
-		glBegin(GL_TRIANGLE_FAN);
-		// glColor3f(1.0f, 1.0f, 1.0f);
-		glTexCoord2f(0, 1, 1, 0);
-		glVertex2f(0, 1, x + w, y + h);
-		// glColor3f(1.0f, 0.0f, 1.0f);
-		glTexCoord2f(2, 3, 1, 1);
-		glVertex2f(2, 3, x + w, y - h);
-		// glColor3f(1.0f, 1.0f, 0.0f);
-		glTexCoord2f(4, 5, 0, 1);
-		glVertex2f(4, 5, x - w, y - h);
-		// glColor3f(0.0f, 1.0f, 1.0f);
-		glTexCoord2f(6, 7, 0, 0);
-		glVertex2f(6, 7, x - w, y + h);
-	} else {
-		glBegin(GL_LINE_LOOP);
-		// glColor3f(1.0f, 1.0f, 1.0f);
-		glVertex2f(0, 1, x + w, y + h);
-		glVertex2f(2, 3, x + w, y - h);
-		glVertex2f(4, 5, x - w, y - h);
-		glVertex2f(6, 7, x - w, y + h);
-	}
-	glEnd(4);
-#else
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glBegin(GL_LINE_LOOP);
+	// if(!t)glColor4f(0.0f, 0.0f, 0.0f,0.45f);
+	glBegin(GL_TRIANGLE_FAN);
 	// glColor3f(1.0f, 1.0f, 1.0f);
+	glTexCoord2f(0, 1, 1, 0);
 	glVertex2f(0, 1, x + w, y + h);
+	// glColor3f(1.0f, 0.0f, 1.0f);
+	glTexCoord2f(2, 3, 1, 1);
 	glVertex2f(2, 3, x + w, y - h);
+	// glColor3f(1.0f, 1.0f, 0.0f);
+	glTexCoord2f(4, 5, 0, 1);
 	glVertex2f(4, 5, x - w, y - h);
+	// glColor3f(0.0f, 1.0f, 1.0f);
+	glTexCoord2f(6, 7, 0, 0);
 	glVertex2f(6, 7, x - w, y + h);
 	glEnd(4);
-#endif
 	return 0;
 }
 extern float charScale(int c);
@@ -484,12 +424,7 @@ int charSize(lua_State *L) {
 	return 1;
 }
 int tint(lua_State *L) {
-	float r = lua_tonumber(L, -4);
-	float g = lua_tonumber(L, -3);
-	float b = lua_tonumber(L, -2);
-	float a = lua_tonumber(L, -1);
-	// printf("%f,%f,%f,%f\n",r,g,b,a);
-	glColor4f(r / 255, g / 255, b / 255, a / 255);
+	glColor4f(lua_tonumber(L, -4) / 255, lua_tonumber(L, -3) / 255, lua_tonumber(L, -2) / 255, lua_tonumber(L, -1) / 255);
 	return 0;
 }
 int drawLine(float w, float x, float y, float x1, float y1) {
@@ -814,7 +749,7 @@ static void engine_draw_frame(struct engine *engine) {
 		return;
 	}
 	// glClearColor(0.375f, 0.25f, 0.5f, 1);
-	do {
+	{
 		MAKE_TEXTURE = 0;
 		glClearColor(0, 0, 0, 0);
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -859,12 +794,13 @@ static void engine_draw_frame(struct engine *engine) {
 		lua_getglobal(L, "draw");
 		lua_pcall(L, 0, 0, 0);
 		if (lua_gettop(L)) {
-			/*FILE *f = fopen("/sdcard/log.txt", "wb");
+			FILE *f = fopen("/sdcard/log.txt", "wb");
 			fprintf(f, "%s", lua_tostring(L, -1));
-			fclose(f);*/
+			fclose(f);
 			hasError = 1;
 		}
 #endif
+		// if (engine->state.z)testText(0);
 #ifdef BOX_DEBUG
 		glBindTexture(GL_TEXTURE_2D, 0);
 		drawPhysics(L);
@@ -876,7 +812,7 @@ static void engine_draw_frame(struct engine *engine) {
 #endif
 		glPopMatrix();
 #endif
-	} while (0);
+	}
 	// glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 	glDisableClientState(GL_COLOR_ARRAY);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -984,6 +920,10 @@ static int32_t engine_handle_input(struct android_app *app, AInputEvent *event) 
 			engine->animating = 1;
 		}
 	} else if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_KEY) {
+		if (AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP)
+			if (AKeyEvent_getKeyCode(event) == AKEYCODE_MENU) {
+				engine->state.z = !engine->state.z;
+			}
 	}
 	return 0;
 }

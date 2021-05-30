@@ -412,7 +412,7 @@ function mesh:setRectTex(id,x,y,w,h)
 end
 Texture={}
 function mesh:draw(m)
-	if ContextMode then return end
+	if context then return end
 	local tid
 	local ww
 	local hh
@@ -468,11 +468,6 @@ function setContext(img)
 		newContext(img.width,img.height)
 	end
 	context=img
-	if img then
-		ContextMode=true
-	else
-		ContextMode=nil
-	end
 	--print("setContext")
 end
 --[[
