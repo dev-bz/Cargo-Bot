@@ -46,13 +46,13 @@ function Events.trigger(event,...)
                 clone[obj][func] = 1
             end
         end
-
+        local arg=table.pack(...)
         for obj,funcs in pairs(clone) do
             for func,dummy in pairs(funcs) do
                 
                 local argCopy = Table.clone(arg)
                 table.insert(argCopy,1,obj)
-                func(unpack(argCopy))
+                func(table.unpack(argCopy))
             end
         end
     end

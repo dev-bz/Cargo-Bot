@@ -116,6 +116,11 @@ wrapwidth=-1
 function textWrapWidth(wWidth)
 wrapwidth=wWidth
 end
+--[[if nil == charSize then
+function charSize(idx)
+return 32
+end
+end]]
 function textAlign()end
 charScales={}
 for i=1,127,1 do
@@ -462,15 +467,16 @@ function image:init(w,h)
 end
 function setContext(img)
 	if not img and context then
-		print("mkContext  ".. context.width .. ":" .. context.height)
+		--RUNINFO="mkContext ".. context.width .. ":" .. context.height
 		context.tex=mkContext(context.width,context.height)
 	elseif img then
+		--RUNINFO="setContext (".. img.width .. ") : " .. img.height
 		newContext(img.width,img.height)
 	end
 	context=img
 	--print("setContext")
 end
---[[
+--[=[
 body=class()
 function body:init(type_)
 	self.points={}
@@ -579,7 +585,7 @@ function physics.step()
 	end
 end
 end
-]]
+]=]
 vec2=class()
 --vec2.__index = vec2
 function vec2:init(x,y)

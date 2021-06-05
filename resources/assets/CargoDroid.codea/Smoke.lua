@@ -21,9 +21,9 @@ function Smoke:init(x,y,screen)
         self:add(obj)
         table.insert(self.particles,obj)
         
-        local c = v 
+        -- local c = v 
         obj:rotate(math.random(0,360))
-        obj.velocity = vec2(0,1):rotate(math.random(math.pi*2))*150
+        obj.velocity = vec2(0,1):rotate(math.random()*math.pi*2)*150
     end
 end
 

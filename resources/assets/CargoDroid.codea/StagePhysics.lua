@@ -173,7 +173,7 @@ function Stage:physicsBodies(includeClaw)
                 p.x = arm:getW() - p.x + 1
             end
         end
-        local box = physics.body(POLYGON,unpack(points))
+        local box = physics.body(POLYGON,table.unpack(points))
         box.x = arm:getX()
         box.y = arm:getY()
         box.type = STATIC

@@ -22,6 +22,7 @@ end
 -- applyes this func to all elems of the second argument, which is an array
 -- func should take as many arguments as the number of arrays that are passed in
 function Table.map(func,...)
+    local arg=table.pack(...)
     assert(arg.n > 0,"Table.map called with no arguments")
     local result = {}
     local n = #arg[1]
@@ -29,7 +30,7 @@ function Table.map(func,...)
         -- fixme: isn't there a function that does this for me?
         local args = {}
         for _,arr in ipairs(arg) do table.insert(args,arr[i]) end
-        local r = func(unpack(args))
+        local r = func(table.unpack(args))
         table.insert(result,r)
     end
     return result

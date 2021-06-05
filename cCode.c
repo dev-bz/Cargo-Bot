@@ -165,8 +165,8 @@ struct engine *current = NULL;
 int newContext(lua_State *L) {
 	if (current)
 		eglMakeCurrent(current->display, current->_surface, current->_surface, current->context);
-	int w = lua_tointeger(L, -2);
-	int h = lua_tointeger(L, -1);
+	int w = lua_tonumber(L, -2);
+	int h = lua_tonumber(L, -1);
 	int nw = 1;
 	while (nw < w) {
 		nw = nw << 1;
@@ -214,9 +214,8 @@ size_t textures = 0;
 static int MAKE_TEXTURE = 0;
 int mkContext(lua_State *L) {
 	GLuint tex = 0;
-	int w = lua_tointeger(L, -2);
-	int h = lua_tointeger(L, -1);
-	/// w=32;h=32; printf("%i,%i\n",w,h);
+	int w = lua_tonumber(L, -2);
+	int h = lua_tonumber(L, -1);
 	int nw = 1;
 	while (nw < w) {
 		nw = nw << 1;
@@ -305,7 +304,7 @@ int glRect(lua_State *L) {
 #endif
 	return 0;
 }
-void testText(float size) {
+void testText(float timing) {
 	// float x = 0, y = 0, w = size, h = size;
 	glColor4f(1, 1, 1, 1);
 	glBegin(GL_TRIANGLE_FAN);
@@ -322,6 +321,26 @@ void testText(float size) {
 	// glTexCoord2f(6, 7, 0, 0);
 	glVertex2f(6, 7, x - w, y + h);*/
 	drawText(0, quadTexCoords, quadVertices, 0);
+	static float times = 0;
+	static float lastTime = 0;
+	static int index = -1;
+	times += timing;
+	if (times > lastTime) {
+		lastTime = times + 1;
+		for (int i = 0; i < textures; ++i) {
+			struct TextureMap *m = maps + ((i + index + 1) % textures);
+			if (m->w && m->h) {
+				char info[256];
+				index = ((i + index + 1) % textures);
+				sprintf(info, "%d (%d x %d)", index, maps[index].w, maps[index].h);
+				lua_pushstring(L, info);
+				lua_setglobal(L, "NUMTEXTURES");
+				break;
+			}
+		}
+	}
+	if (index != -1)
+		glBindTexture(GL_TEXTURE_2D, maps[index].tex);
 	glEnd(4);
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
@@ -562,6 +581,7 @@ int sound(lua_State *L) {
 	}
 	return 0;
 }
+int hasError = 0;
 #define registerFunc(func)      \
 	lua_getglobal(L, #func);      \
 	if (lua_isnil(L, -1)) {       \
@@ -605,12 +625,21 @@ void InitLua(lua_State *L) {
 	luaL_dostring(L, env);
 	sprintf(env, "%s/png/test.lua", gpath);*/
 	luaL_dofile(L, "resources/png/test.lua");
-	// /printf("error->%i\n",lua_error(L));
-	luaL_dostring(L, "setup()");
+	if (lua_gettop(L)) {
+		lua_setglobal(L, "RUNINFO");
+		hasError = 1;
+	} else {
+		// /printf("error->%i\n",lua_error(L));
+		luaL_dostring(L, "setup()");
+		if (lua_gettop(L)) {
+			lua_setglobal(L, "RUNINFO");
+			hasError = 1;
+		}
+	}
 }
-int hasError = 0;
 // #include "/sdcard/_ws/mainws.h"
 void init() {
+	hasError = 0;
 	LOGI("ENTER LOOP");
 	Sound_init();
 	// init_dll();
@@ -715,7 +744,7 @@ static int engine_init_display(struct engine *engine) {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	RenderGLInit("resources/Roboto-Black.ttf"); //("/system/fonts/DroidSans-Bold.ttf");
 	if (NULL == L) {
-		L = lua_open();
+		L = luaL_newstate();
 		if (engine->app->activity->internalDataPath) {
 			lua_pushstring(L, engine->app->activity->internalDataPath);
 			lua_setglobal(L, "INTERNALDATAPATH");
@@ -742,12 +771,12 @@ static void engine_draw_frame(struct engine *engine) {
 	}
 	// Just fill the screen with a color.
 	current = engine;
-	if (hasError) {
+	/*if (hasError) {
 		glClearColor(0.75f, 0.25f, 0.125f, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 		eglSwapBuffers(engine->display, engine->surface);
 		return;
-	}
+	}*/
 	// glClearColor(0.375f, 0.25f, 0.5f, 1);
 	{
 		MAKE_TEXTURE = 0;
@@ -787,24 +816,53 @@ static void engine_draw_frame(struct engine *engine) {
  glEnd(4);
 #else
 		glTranslatef(-384, -512, 0);
-		lua_pushnumber(L, (engine->time < 50 ? engine->time : 50) * 0.001);
-		lua_setglobal(L, "DeltaTime");
-		luaL_dostring(L, "ElapsedTime=ElapsedTime+DeltaTime\nphysics:step()");
-		// luaL_dostring(L,"gldraw(tex,384,512,512,512)");
-		lua_getglobal(L, "draw");
-		lua_pcall(L, 0, 0, 0);
-		if (lua_gettop(L)) {
-			FILE *f = fopen("/sdcard/log.txt", "wb");
-			fprintf(f, "%s", lua_tostring(L, -1));
-			fclose(f);
-			hasError = 1;
+		if (hasError) {
+			luaL_dostring(L, "noTint() noFill() textMode(CORNER) fontSize(32) textWrapWidth(768)");
+			luaL_dostring(L, "if NUMTEXTURES then text(NUMTEXTURES,10,64) end");
+			luaL_dostring(L, "if RUNINFO then text(RUNINFO,10,96) end");
+		} else {
+			lua_pushnumber(L, (engine->time < 50 ? engine->time : 50) * 0.001);
+			lua_setglobal(L, "DeltaTime");
+			luaL_dostring(L, "ElapsedTime=ElapsedTime+DeltaTime\nphysics:step()");
+#if 1
+			luaL_dostring(L, "ok, errors = xpcall(draw,debug.traceback)");
+			lua_getglobal(L, "errors");
+			if (lua_isnil(L, -1)) {
+			} else {
+				if (lua_isstring(L, -1)) {
+					/*FILE *f = fopen("/sdcard/log.txt", "wb");
+					fprintf(f, "%s", lua_tostring(L, -1));
+					fclose(f);*/
+					lua_setglobal(L, "NUMTEXTURES");
+				}
+				hasError = 1;
+			}
+			lua_pop(L, 1);
+#else
+			lua_getglobal(L, "draw");
+			if (lua_isfunction(L, -1)) {
+				lua_pcall(L, 0, 0, 0);
+				if (lua_gettop(L)) {
+					/*FILE *f = fopen("/sdcard/log.txt", "wb");
+					fprintf(f, "[%s]", lua_tostring(L, -1));
+					fclose(f);*/
+					hasError = 1;
+				}
+			} else
+				lua_pop(L, 1);
+#endif
+			if (engine->state.z) {
+				testText((engine->time < 50 ? engine->time : 50) * 0.001);
+				luaL_dostring(L, "noTint() noFill() textMode(CORNER) fontSize(32) textWrapWidth(1000)");
+				luaL_dostring(L, "if NUMTEXTURES then text(NUMTEXTURES,10,64) end");
+				luaL_dostring(L, "if RUNINFO then text(RUNINFO,10,96) end");
+			}
 		}
 #endif
-		// if (engine->state.z)testText(0);
 #ifdef BOX_DEBUG
 		glBindTexture(GL_TEXTURE_2D, 0);
 		drawPhysics(L);
-		luaL_dostring(L, "noTint() noFill() textMode(CORNER) fontSize(32) textWrapWidth(1000)");
+		luaL_dostring(L, "noTint() noFill() textMode(CORNER) fontSize(32) textWrapWidth(768)");
 		// luaL_dostring(L, "if currentMusic then text('currentMusic',10,32) else text('no currentMusic',10,32) end");
 		luaL_dostring(L, "if EXTERNALDATAPATH then text(EXTERNALDATAPATH,10,64) end");
 		luaL_dostring(L, "if INTERNALDATAPATH then text(INTERNALDATAPATH,10,96) end");
@@ -886,7 +944,7 @@ void touch(int x, int y, const char *state) {
 	// printf("Top=%i\n",lua_gettop(L));
 	lua_getglobal(L, "touch");
 	lua_pushstring(L, "state");
-	lua_getfield(L, LUA_GLOBALSINDEX, state);
+	lua_getglobal(L, state);
 	lua_settable(L, -3);
 	lua_pushstring(L, "x");
 	lua_pushinteger(L, x);
@@ -897,6 +955,10 @@ void touch(int x, int y, const char *state) {
 	lua_pop(L, 1);
 	// printf("Top=%i\n",lua_gettop(L));
 	luaL_dostring(L, "if touch and touched then touched(touch) end");
+	if (lua_gettop(L)) {
+		hasError = 1;
+		lua_setglobal(L, "RUNINFO");
+	}
 }
 static int32_t engine_handle_input(struct android_app *app, AInputEvent *event) {
 	struct engine *engine = (struct engine *)app->userData;
@@ -987,7 +1049,7 @@ void android_main(struct android_app *state) {
 	// strcpy(gpath, state->activity->externalDataPath);
 	// strcpy(gpath, "/sdcard/cargo-bot/cargo-bot");
 	// strcat(gpath, "/resources/");
-	chdir("/storage/emulated/0/cargo-bot/Cargo-bot");
+	// chdir("/storage/emulated/0/cargo-bot/Cargo-bot");
 	density = AConfiguration_getDensity(state->config);
 	app_dummy();
 	// SDL_Init( SDL_INIT_VIDEO );

@@ -128,7 +128,7 @@ function ABCMusic:init(_ABCTune,LOOP,DEBUG,DUMP)
         TOKEN_NEWLINE = "\n",
         --TOKEN_DOUBLE_FLAT = "__",
         --TOKEN_DOUBLE_SHARP = "%^^", --]]
-        TOKEN_ACCIDENTAL = "([_=\^])",
+        TOKEN_ACCIDENTAL = "([_=^])",
         --[[TOKEN_REST_DURATION = "(z)(%d?/?%d?)",
         TOKEN_REST_MULTIMEASURE = "(Z)(%d?)",
         TOKEN_TRILL = "~",
@@ -892,7 +892,7 @@ function ABCMusic:convertNoteToPitch(n)
                     self.semitoneModifier = self.semitoneModifier - 1
                 end
                 
-                if currentChar == "\^" then 
+                if currentChar == "^" then 
                     self.semitoneModifier = self.semitoneModifier + 1
                     currentChar = "%^"
                 end
