@@ -165,8 +165,8 @@ struct engine *current = NULL;
 int newContext(lua_State *L) {
 	if (current)
 		eglMakeCurrent(current->display, current->_surface, current->_surface, current->context);
-	int w = lua_tonumber(L, -2);
-	int h = lua_tonumber(L, -1);
+	int w = lua_tointeger(L, -2);
+	int h = lua_tointeger(L, -1);
 	int nw = 1;
 	while (nw < w) {
 		nw = nw << 1;
@@ -214,8 +214,8 @@ size_t textures = 0;
 static int MAKE_TEXTURE = 0;
 int mkContext(lua_State *L) {
 	GLuint tex = 0;
-	int w = lua_tonumber(L, -2);
-	int h = lua_tonumber(L, -1);
+	int w = lua_tointeger(L, -2);
+	int h = lua_tointeger(L, -1);
 	int nw = 1;
 	while (nw < w) {
 		nw = nw << 1;

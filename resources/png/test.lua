@@ -176,7 +176,7 @@ function textSize(str)
 		end
 	end
 	if mx<x then mx=x end
-	return mx,lc*fsize
+	return math.floor(mx+0.5),lc*fsize
 end
 function text(str,x,y)
 	tw,th=textSize(str)
