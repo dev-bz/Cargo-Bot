@@ -31,9 +31,7 @@ SOUND_RANDOM=8
 SOUND_SHOOT=9
 touch={state=BEGAN,x=200,y=450}
 parameter={}
-function parameter:watch(...)
-	print(...)
-end
+function parameter:watch(...)print(...)end
 --Java Start
 function isRecording()return nil end
 function startRecording()end
@@ -45,10 +43,7 @@ end
 function displayMode(mode)
 	print("displayMode-"..mode)
 end
-function spriteMode(mode)
-	--print("spriteMode-"..mode)
-	sMode=mode
-end
+function spriteMode(mode)sMode=mode end
 function sprite(img,x,y,w,h)
 	--print("sprite-"..img)
 		local tex=Texture[img]
@@ -78,14 +73,7 @@ function color(r,g,b,a)
 	end
 	return {r=r,g=g,b=b,a=a}
 end
-
-function noTint() tint(255,255,255,255) end
---[[function sampleMusic(...)
-SAVE_INFO="sampleMusic "
-for i,v in pairs({...}) do
-SAVE_INFO=SAVE_INFO..tostring(v)
-end
-end]]
+function noTint()tint(255,255,255,255)end
 function soundBufferSize()
 	return 200,200
 end
@@ -103,24 +91,13 @@ end
 function fontSize(size)
 fsize=size
 end
---[[function fill(r,g,b,a)
-tint(r,g,b,a)
---end
-end]]
-function noFill()
-fill(255,255,255,255)
-end
+function noFill()fill(255,255,255,255)end
 tMode=0
 function textMode(mo)tMode=mo end
 wrapwidth=-1
 function textWrapWidth(wWidth)
 wrapwidth=wWidth
 end
---[[if nil == charSize then
-function charSize(idx)
-return 32
-end
-end]]
 function textAlign()end
 charScales={}
 for i=1,127,1 do
@@ -289,19 +266,6 @@ end]]
 function pushStyle()end
 function popStyle()end
 --function color(r,g,b,a) return {r,g,b,a} end
-if not gldraw then
-function pushMatrix()end
-function popMatrix()end
-function translate(x,y)end
-function rotate(angle)end
-function line(px,py,p2x,p2y)end
-function ellipse(x,x,r)end
-function loadTexture(name)
-	print(name)
-	return 0
-end
-function tint(r,g,b,a)end
-end
 rMode=0
 function rectMode(mode)rMode=mode end
 function noStroke()
@@ -414,6 +378,20 @@ function mesh:setRect(id,x,y,w,h,angle)
 	end
 end
 function mesh:setRectTex(id,x,y,w,h)
+	if not self.m then self.m={} end
+	if id and x and y and w and h then
+		--print("setRect is ".. id)
+		if id <= #self.m then
+			local mm=self.m[id].offset
+			if mm then
+				mm.x=x
+				mm.y=y
+			else
+				self.m[id].offset={x=x,y=y}
+			end
+		end
+	end
+	RUNINFO='('..x..','..y..','..w..','..h..')'
 end
 Texture={}
 function mesh:draw(m)
@@ -444,6 +422,9 @@ function mesh:draw(m)
 			pushMatrix()
 			translate(vv[1],vv[2])
 			rotate(vv.ang)
+			if textureOffset and vv.offset then
+				textureOffset(vv.offset.x,vv.offset.y)
+			end
 			gldraw(tid,0,0,vv[3],vv[4])
 			-- glRect(1.0,0,0,vv[3],vv[4])
 			popMatrix()
@@ -451,11 +432,11 @@ function mesh:draw(m)
 	end
 	--print("mesh.texture = ",self.texture)
 end
-function printcolor(c)
+--[[function printcolor(c)
 	if pColor then
 	print("Shadow",c[1]..","..c[2]..","..c[3]..","..c[4])
 	end
-end
+end]]
 function mesh:setRectColor(id,cl)
 	self.m[id].color=cl
 end
@@ -465,129 +446,7 @@ function image:init(w,h)
 	self.height=h
 	--error("image.init("..w..","..h..")")
 end
-function setContext(img)
-	if not img and context then
-		--RUNINFO="mkContext ".. context.width .. ":" .. context.height
-		context.tex=mkContext(context.width,context.height)
-	elseif img then
-		--RUNINFO="setContext (".. img.width .. ") : " .. img.height
-		newContext(img.width,img.height)
-	end
-	context=img
-	--print("setContext")
-end
---[=[
-body=class()
-function body:init(type_)
-	self.points={}
-	self.angle=0
-	self.linearVelocity=vec2(0,0)
-	self.angularVelocity=0
-	self.x=0
-	self.y=0
-	self.radius=0
-	self.shapeType=type_
-	self.type=DYNAMIC
-end
-function body:destroy()
-	self.points=nil
-end
-function body:applyForce(force)
-
-end
-if nil==physics then
-physics={}
-function physics.gravity()
-end
-function physics.resume()
-	selfstop=nil
-end
-function physics.pause()
-	--self_stop=true
-end
-
-function physics.body(tp,v1,v2,v3,v4)
---	self_bds.bk()
-	if not self_bds then self_bds={} end
-	local b = body(tp)
-
-	if CIRCLE == tp then
-		b.radius=v1
-	elseif POLYGON == tp then
-		b.mc=vec2(0,0)
-		b.mc.x=math.max(v1.x,v2.x)
-		b.mc.y=math.max(v1.y,v2.y)
-		b.mc.x=math.max(b.mc.x,v3.x)
-		b.mc.y=math.max(b.mc.y,v3.y)
-		b.mc.x=math.max(b.mc.x,v4.x)*0.5
-		b.mc.y=math.max(b.mc.y,v4.y)*0.5
-		table.insert(b.points,v1)
-		table.insert(b.points,v2)
-		table.insert(b.points,v3)
-		table.insert(b.points,v4)
-		--error("body")
-	else
-		print(tp)
-		--error("Hello")
-	end
-	--b.shapeType = nil
-	self_bds[#self_bds+1]=b
-	return b --ody()
-end
-function physics.step()
-	if self_stop then return end
-	if currentScreen then
-	 if currentScreen.bodies then
-		for i,v in ipairs(currentScreen.bodies) do
-			if v.body then
-				--print("body.type " .. v.body.type)
-				if v.body.type ==DYNAMIC  then
-					local rt
-					if v.body.mc then
-
-						local cc = v.body.mc:rotate(math.rad(v.body.angle))
-						v.body.angle = v.body.angle + v.body.angularVelocity
-						local rt=cc+vec2(v.body.x,v.body.y)
-						cc = v.body.mc:rotate(math.rad(v.body.angle))
-						rt.x = rt.x + v.body.linearVelocity.x
-						rt.y = rt.y + v.body.linearVelocity.y
-
-						if rt.y<370 and rt.x < 768 then
-							rt.y=370
-							v.body.linearVelocity.y=0
-							v.body.linearVelocity.x=2.5
-							v.body.angularVelocity=-50
-						else
-							v.body.linearVelocity.y = v.body.linearVelocity.y - 0.1
-						end
-						v.body.x=rt.x-cc.x
-						v.body.y=rt.y-cc.y
-					else
-						v.body.angle = v.body.angle + v.body.angularVelocity
-						v.body.x = v.body.x + v.body.linearVelocity.x
-						v.body.y = v.body.y + v.body.linearVelocity.y
-						if v.body.y<320 and v.body.x < 768 then
-							v.body.y=320
-							v.body.linearVelocity.y=0
-							v.body.linearVelocity.x=2.5
-							v.body.angularVelocity=1
-						else
-							v.body.linearVelocity.y = v.body.linearVelocity.y - 0.1
-						end
-					end
-
-				end
-				--ellipse(v.body.x,v.body.y,50)
-			end
-		end
-		--print("Physics Count -> ".. #currentScreen.bodies)
-	 end
-	end
-end
-end
-]=]
 vec2=class()
---vec2.__index = vec2
 function vec2:init(x,y)
 	self.x=x
 	self.y=y
@@ -645,17 +504,7 @@ v3=v1+v2
 v3=v3:rotate(1)
 vec2.print(v3)
 end
-
---vec2.mt.__add=vec2.union
-
 --require 'vec2'
-
-v1=vec2(1,2)
-v2=vec2(3,4)
-v3=v2/2
-vec2.print(v3)
-print("It's OK")
---function gldraw()end
 require'IO'
 require "Tweener"
 require "Events"
@@ -689,157 +538,15 @@ require 'CreditsScreen'
 require 'ScrollingTexture'
 require 'ShakeDetector'
 require 'HowScreen'
-function Screen:ctype()
-	--print("Screen")
-	return 0
-end
 require "BaseSelect"
-function BaseSelect:ctype()
-	--print("BaseSelect")
-	return 4
-end
 require 'LevelSelect'
 require "PackSelect"
-function PackSelect:ctype()
-	--print("PackSelect")
-	return 5
-end
 require "StartScreen"
-function StartScreen:ctype()
-	--print("StartScreen")
-	return 1
-end
 require "TransitionScreen"
-function TransitionScreen:ctype()
-	--print("TransitionScreen")
-	return 2
-end
 require "SplashScreen"
-function SplashScreen:ctype()
-	--print("SplashScreen")
-	return 3
-end
 require 'Level'
-function Level:ctype()
-	--print("Level")
-	return 6
-end
 require 'Tutorial'
 require "Levels"
 require "Main"
 require 'Stack'
 require 'Popover'
-
---[[
-tmpdraw = draw
-draw=nil
-function draw()
-	tmpdraw()
-	vv=vec2(384,512)
-	vt=vec2(50,0)
-	for ii=1,360,10 do
-		ve=vt:rotate(ii*3.14159/180)
-		line(vv.x,vv.y,ve.x+vv.x,ve.y+vv.y)
-		if currentScreen.bodies then
-		  for i,v in ipairs(currentScreen.bodies) do
-				ellipse(v.x,v.y,15);
-		  end
-		end
-	end
-end--]]
---[[
-tmpdraw = draw
-draw=nil
-function draw()
-	tmpdraw()
-	--ellipse(368,512,600)
-	local stype
-	--if currentScreen.ctype then
-		stype=currentScreen:ctype()
-	--end
-	if stype == 1 then
-		--print("draw ")
-		currentScreen:drawBodies()
-		--print("draw")
-	end
-
-end --]]
-if not gldraw then
---touch={state=BEGAN,x=20,y=20}
-function gldraw()end
-contact={}
-
-setup()
---table.insert(elapsedTimes,ElapsedTimes-1)
-i=0
-print("Start In Lua")
-while running do
-	ElapsedTime=ElapsedTime+0.5
-	draw()
-	local stype = 7
-	if currentScreen.ctype then stype=currentScreen:ctype() end
-	--print(stype)
-	if stype == 6 then --Level
-		i=i+1
-		if i==15 then
-			touch.x = 394
-			touch.y = 41
-			touch.state=BEGAN
-			touched(touch)
-		end
-		if i==16 then
-			touch.state=ENDED
-			touched(touch)
-			print("touched ==========================")
-			--openURL("null")
-		end
-	elseif stype == 4 then
-		i=i+1
-		if i==12 then
-			touch.x = 549 --50
-			touch.y = 300 --600
-			touch.state=BEGAN
-			touched(touch)
-		end
-		if i==13 then
-			touch.state=ENDED
-			touched(touch)
-			--print("touched ==========================")
-			--openURL("null")
-			--i=0
-		end
-	elseif stype == 5 then
-		i=i+1
-		if i==8 then
-			touch.x = 549 --220
-			touch.y = 300 --783
-			touch.state=BEGAN
-			touched(touch)
-		end
-		if i==9 then
-			touch.state=ENDED
-			touched(touch)
-			--print("touched ==========================")
-			--openURL("null")
-			--i=0
-		end
-	elseif stype == 1 then
-		i=i+1
-		if i==5 then
-			touch.state=BEGAN
-			touched(touch)
-		end
-		if i==6 then
-			touch.state=ENDED
-			touched(touch)
-			--print("touched ==========================")
-			--i=0
-		end
-	else
-		--print(stype)
-	end
-	collide(contact)
-	--print("frame " .. i)
-end
-end
-print(".......Done.....")

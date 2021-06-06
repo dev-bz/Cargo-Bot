@@ -92,7 +92,7 @@ function Level:init(levelData)
     self:add(self.menuB)
     self.menuB.onEnded = function(but,t)
         Events.trigger("play",false)
-        Events.trigger("levelSelect",self) 
+        Events.trigger("abcd",self) 
     end
 
     -- the toolbox

@@ -16,6 +16,9 @@ target_link_directories(phys PUBLIC /sdcard/_ws/box2d_231/box2d/Box2D/c.build/Bo
 
 
 add_library(cargo SHARED cCode.c font.cpp sfxr.cpp loadpng.cpp pngtest.cpp b64/cdecode.c)
+if(CIDE)
+target_compile_definitions(cargo PRIVATE EXPORT_TO_APK)
+endif()
 target_include_directories(cargo PRIVATE ${LUA_INC})
 target_link_directories(cargo PUBLIC ${LUA_LIB})
 target_link_options(cargo PUBLIC -Wl,--no-undefined)

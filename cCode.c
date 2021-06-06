@@ -162,48 +162,6 @@ int fill(lua_State *L) {
 }
 int width, height;
 struct engine *current = NULL;
-int newContext(lua_State *L) {
-	if (current)
-		eglMakeCurrent(current->display, current->_surface, current->_surface, current->context);
-	int w = lua_tointeger(L, -2);
-	int h = lua_tointeger(L, -1);
-	int nw = 1;
-	while (nw < w) {
-		nw = nw << 1;
-	}
-	int nh = 1;
-	while (nh < h) {
-		nh = nh << 1;
-	}
-	while (nw > 512) {
-		nw = nw >> 1;
-	}
-	while (nh > 512) {
-		nh = nh >> 1;
-	}
-	// nw=256;nh=256;
-	// glDrawBuffer();
-	glClearColor(0.f, 0.f, 0.f, .0f);
-	glClear(GL_COLOR_BUFFER_BIT);
-	glClearColor(0.125f, 0.25f, 0.75f, 1);
-	glViewport(0, 0, nw, nh);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glScalef(2.0f / w, -2.0f / h, 1);
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glLoadIdentity();
-	// glScalef(1/300.0f,1/300.0f,1);
-	// glTranslatef(-512,512,0);
-	glTranslatef(-0.5f * w, -0.5f * h, 0);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	// glEnableClientState(GL_COLOR_ARRAY_POINTER);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY_POINTER);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	glVertexPointer(2, GL_FLOAT, 0, quadVertices);
-	glTexCoordPointer(2, GL_FLOAT, 0, quadTexCoords);
-	return 0;
-}
 struct TextureMap {
 	GLuint tex, w, h, offset;
 };
@@ -211,57 +169,112 @@ char *textureData = NULL;
 size_t textureSize = 0;
 struct TextureMap *maps = NULL;
 size_t textures = 0;
-static int MAKE_TEXTURE = 0;
-int mkContext(lua_State *L) {
-	GLuint tex = 0;
-	int w = lua_tointeger(L, -2);
-	int h = lua_tointeger(L, -1);
-	int nw = 1;
-	while (nw < w) {
-		nw = nw << 1;
-	}
-	int nh = 1;
-	while (nh < h) {
-		nh = nh << 1;
-	}
-	while (nw > 512) {
-		nw = nw >> 1;
-	}
-	while (nh > 512) {
-		nh = nh >> 1;
-	}
-	glFinish();
-	{
+static int MAKE_TEXTURE = -1;
+int setContext(lua_State *L) {
+	int nw;
+	int nh;
+	if (lua_gettop(L)) {
+		if (current)
+			eglMakeCurrent(current->display, current->_surface, current->_surface, current->context);
+		glClearColor(0.f, 0.f, 0.f, .0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+		glClearColor(0.125f, 0.25f, 0.75f, 1);
+		if (lua_istable(L, 1)) {
+			if (current) {
+				lua_pushlightuserdata(L, current);
+				lua_pushvalue(L, 1);
+				lua_rawset(L, LUA_REGISTRYINDEX);
+			}
+			lua_getfield(L, 1, "width");
+			int w = lua_tointeger(L, -1);
+			lua_getfield(L, 1, "height");
+			int h = lua_tointeger(L, -1);
+			lua_pop(L, 2);
+			nw = nh = 1;
+			while (nw < w)
+				nw = nw << 1;
+			while (nh < h)
+				nh = nh << 1;
+			while (nw > 512)
+				nw = nw >> 1;
+			while (nh > 512)
+				nh = nh >> 1;
+			MAKE_TEXTURE = -1;
+			for (int i = 0; i < textures; ++i) {
+				if (maps[i].tex == -1) {
+					MAKE_TEXTURE = i;
+					break;
+				}
+			}
+			if (-1 == MAKE_TEXTURE) {
+				MAKE_TEXTURE = textures++;
+				maps = realloc(maps, sizeof(struct TextureMap) * (textures));
+				maps[MAKE_TEXTURE].tex = -1;
+			}
+			maps[MAKE_TEXTURE].offset = 0;
+			maps[MAKE_TEXTURE].w = nw;
+			maps[MAKE_TEXTURE].h = nh;
+			// nw=256;nh=256;
+			// glDrawBuffer();
+			glViewport(0, 0, nw, nh);
+			glMatrixMode(GL_PROJECTION);
+			glLoadIdentity();
+			glScalef(2.0f / w, -2.0f / h, 1);
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix();
+			glLoadIdentity();
+			// glScalef(1/300.0f,1/300.0f,1);
+			// glTranslatef(-512,512,0);
+			glTranslatef(-0.5f * w, -0.5f * h, 0);
+		} else {
+			if (-1 == MAKE_TEXTURE) {
+				lua_pushstring(L, lua_typename(L, lua_type(L, 1)));
+				lua_setglobal(L, "RUNINFO");
+			}
+		}
+		glEnableClientState(GL_VERTEX_ARRAY);
+		// glEnableClientState(GL_COLOR_ARRAY_POINTER);
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY_POINTER);
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+		glVertexPointer(2, GL_FLOAT, 0, quadVertices);
+		glTexCoordPointer(2, GL_FLOAT, 0, quadTexCoords);
+	} else {
+		glPopMatrix();
+		glFinish();
 		// unsigned char *px = (unsigned char *)malloc(w * h * 4);
 		// unsigned char *nd = (unsigned char *)malloc(nw * nh * 4);
-		// GLuint tex = 0;
-		glGenTextures(1, &tex);
-		glBindTexture(GL_TEXTURE_2D, tex);
-		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		textureData = realloc(textureData, textureSize + nw * nh * 4);
-		glReadPixels(0, 0, nw, nh, GL_RGBA, GL_UNSIGNED_BYTE, textureData + textureSize);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, nw, nh, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData + textureSize);
-		maps = realloc(maps, sizeof(struct TextureMap) * (1 + textures));
-		maps[textures].tex = tex;
-		maps[textures].offset = textureSize;
-		maps[textures].w = nw;
-		maps[textures].h = nh;
-		textureSize += nw * nh * 4;
-		tex = textures;
-		++textures;
-		lua_pushinteger(L, tex);
+		if (MAKE_TEXTURE != -1) {
+			nw = maps[MAKE_TEXTURE].w;
+			nh = maps[MAKE_TEXTURE].h;
+			GLuint tex = -1;
+			glGenTextures(1, &tex);
+			glBindTexture(GL_TEXTURE_2D, tex);
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			textureData = realloc(textureData, textureSize + nw * nh * 4);
+			glReadPixels(0, 0, nw, nh, GL_RGBA, GL_UNSIGNED_BYTE, textureData + textureSize);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, nw, nh, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData + textureSize);
+			maps[MAKE_TEXTURE].tex = tex;
+			maps[MAKE_TEXTURE].offset = textureSize;
+			textureSize += nw * nh * 4;
+			if (current) {
+				lua_pushlightuserdata(L, current);
+				lua_rawget(L, LUA_REGISTRYINDEX);
+				lua_pushinteger(L, MAKE_TEXTURE);
+				lua_setfield(L, -2, "tex");
+				lua_pop(L, 1);
+				lua_pushlightuserdata(L, current);
+				lua_pushnil(L);
+				lua_rawset(L, LUA_REGISTRYINDEX);
+			}
+			MAKE_TEXTURE = -1;
+		}
+		if (current)
+			eglMakeCurrent(current->display, current->surface, current->surface, current->context);
+		ResizeGL(width, height);
 	}
-	glPopMatrix();
-	if (current)
-		eglMakeCurrent(current->display, current->surface, current->surface, current->context);
-	// backViewport();
-	ResizeGL(width, height);
-	// glClearColor(0, 0, 0, 0);
-	// glClear(GL_COLOR_BUFFER_BIT);
-	MAKE_TEXTURE = 1;
-	return 1;
+	return 0;
 }
 int density = 360;
 int glRect(lua_State *L) {
@@ -394,6 +407,13 @@ int glRectText(lua_State *L) {
 #endif
 	return 0;
 }
+float offset[3];
+int textureOffset(lua_State *L) {
+	offset[0] = lua_tonumber(L, 1);
+	offset[1] = -lua_tonumber(L, 2);
+	offset[2] = 1;
+	return 0;
+}
 int gldraw(lua_State *L) {
 	int top = lua_gettop(L);
 	++runCount;
@@ -421,17 +441,21 @@ int gldraw(lua_State *L) {
 	glBindTexture(GL_TEXTURE_2D, maps[t].tex);
 	// if(!t)glColor4f(0.0f, 0.0f, 0.0f,0.45f);
 	glBegin(GL_TRIANGLE_FAN);
-	// glColor3f(1.0f, 1.0f, 1.0f);
-	glTexCoord2f(0, 1, 1, 0);
+	if (offset[2]) {
+		offset[2] = 0;
+		glTexCoord2f(0, 1, 1 + offset[0], offset[1]);
+		glTexCoord2f(2, 3, 1 + offset[0], 1 + offset[1]);
+		glTexCoord2f(4, 5, offset[0], 1 + offset[1]);
+		glTexCoord2f(6, 7, offset[0], offset[1]);
+	} else {
+		glTexCoord2f(0, 1, 1, 0);
+		glTexCoord2f(2, 3, 1, 1);
+		glTexCoord2f(4, 5, 0, 1);
+		glTexCoord2f(6, 7, 0, 0);
+	}
 	glVertex2f(0, 1, x + w, y + h);
-	// glColor3f(1.0f, 0.0f, 1.0f);
-	glTexCoord2f(2, 3, 1, 1);
 	glVertex2f(2, 3, x + w, y - h);
-	// glColor3f(1.0f, 1.0f, 0.0f);
-	glTexCoord2f(4, 5, 0, 1);
 	glVertex2f(4, 5, x - w, y - h);
-	// glColor3f(0.0f, 1.0f, 1.0f);
-	glTexCoord2f(6, 7, 0, 0);
 	glVertex2f(6, 7, x - w, y + h);
 	glEnd(4);
 	return 0;
@@ -591,14 +615,14 @@ int hasError = 0;
 	lua_pop(L, 1)
 void InitLua(lua_State *L) {
 	initPhysicsLib(L);
-	registerFunc(newContext);
-	registerFunc(mkContext);
+	registerFunc(setContext);
 	registerFunc(glRect);
 	registerFunc(glRectText);
 	registerFunc(charSize);
 	registerFunc(stroke);
 	registerFunc(fill);
 	registerFunc(gldraw);
+	registerFunc(textureOffset);
 	registerFunc(pushMatrix);
 	registerFunc(popMatrix);
 	registerFunc(translate);
@@ -779,7 +803,6 @@ static void engine_draw_frame(struct engine *engine) {
 	}*/
 	// glClearColor(0.375f, 0.25f, 0.5f, 1);
 	{
-		MAKE_TEXTURE = 0;
 		glClearColor(0, 0, 0, 0);
 		glClear(GL_COLOR_BUFFER_BIT);
 		// glMatrixMode(GL_PROJECTION);
@@ -851,12 +874,14 @@ static void engine_draw_frame(struct engine *engine) {
 			} else
 				lua_pop(L, 1);
 #endif
+#ifndef EXPORT_TO_APK
 			if (engine->state.z) {
-				testText((engine->time < 50 ? engine->time : 50) * 0.001);
+				// testText((engine->time < 50 ? engine->time : 50) * 0.001);
 				luaL_dostring(L, "noTint() noFill() textMode(CORNER) fontSize(32) textWrapWidth(1000)");
 				luaL_dostring(L, "if NUMTEXTURES then text(NUMTEXTURES,10,64) end");
 				luaL_dostring(L, "if RUNINFO then text(RUNINFO,10,96) end");
 			}
+#endif
 		}
 #endif
 #ifdef BOX_DEBUG
@@ -1045,11 +1070,13 @@ unsigned int timeGet() {
 #include <unistd.h>
 void android_main(struct android_app *state) {
 	struct engine engine;
-	// Make sure glue isn't stripped.
-	// strcpy(gpath, state->activity->externalDataPath);
-	// strcpy(gpath, "/sdcard/cargo-bot/cargo-bot");
-	// strcat(gpath, "/resources/");
-	// chdir("/storage/emulated/0/cargo-bot/Cargo-bot");
+// Make sure glue isn't stripped.
+// strcpy(gpath, state->activity->externalDataPath);
+// strcpy(gpath, "/sdcard/cargo-bot/cargo-bot");
+// strcat(gpath, "/resources/");
+#ifndef EXPORT_TO_APK
+	chdir("/storage/emulated/0/cargo-bot/Cargo-bot");
+#endif
 	density = AConfiguration_getDensity(state->config);
 	app_dummy();
 	// SDL_Init( SDL_INIT_VIDEO );

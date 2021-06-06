@@ -586,6 +586,7 @@ class Contact : public b2ContactListener {
 		ccp->impulse /= ccp->point;
 	}
 	int skip = 0;
+
 public:
 	void post(lua_State *L, b2World *w) {
 		if (false) {
@@ -714,6 +715,34 @@ extern "C" void stepWorld(lua_State *L, b2World *w) {
 extern "C" void drawPhysics(lua_State *L) {
 	if (nullptr == listener)
 		return;
+#if 1
+	lua_getglobal(L, "physics");
+	if (lua_isnil(L, -1)) {
+		lua_pop(L, 1);
+		return;
+	}
+	lua_getfield(L, -1, "usr");
+	auto w = (b2World *)lua_touserdata(L, -1);
+	lua_pop(L, 2);
+	if (w) {
+		auto b = w->GetBodyList();
+		while (b) {
+			auto p = 32 * b->GetPosition();
+			auto ang = b->GetAngle();
+			auto f = b->GetFixtureList();
+			while (f) {
+				if (b2Shape::e_circle == f->GetType()) {
+					auto r = 32 * f->GetShape()->m_radius;
+					auto xx = sin(ang);
+					auto yy = cos(ang);
+					drawLine(2.0, p.x + xx * r, p.y - yy * r, p.x - xx * r, p.y + yy * r);
+				}
+				f = f->GetNext();
+			}
+			b = b->GetNext();
+		}
+	}
+#else
 	for (auto &c : listener->soundPoints) {
 		drawLine(2.0f, c.x - c.z, c.y - c.z, c.x + c.z, c.y + c.z);
 		drawLine(2.0f, c.x + c.z, c.y - c.z, c.x - c.z, c.y + c.z);
@@ -733,6 +762,7 @@ extern "C" void drawPhysics(lua_State *L) {
 			}
 		}
 	}
+#endif
 }
 extern "C" void initPhysicsLib(lua_State *L) {
 	auto w = new b2World(b2Vec2_zero);

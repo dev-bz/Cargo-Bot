@@ -103,6 +103,17 @@ function LevelSelect.makeArrow()
     sprite("Cargo Bot:Next Button",-95,0,40,34)
 end
 
+function LevelSelect:bindEvents()
+    Events.bind("abcd",self,self.showing)
+end
+
+function LevelSelect:showing(oldScreen,skipCutScene)
+    transitionScreen:start(oldScreen,self,skipCutScene)
+    if not skipCutScene then currentScreen = transitionScreen end
+    Music.switch("Start")
+end
+
+
 LevelItemStage = class(BaseStage)
 
 -- config for the goal display
@@ -156,6 +167,7 @@ function LevelItem:init(levelData,screen)
             level:addTutorial()
         end
         currentScreen = transitionScreen
+        screen:bind()
     end
     self:add(button)
 

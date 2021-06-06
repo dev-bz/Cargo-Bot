@@ -65,7 +65,7 @@ function PackSelect:show(oldScreen,skipCutScene)
     self:update()
     transitionScreen:start(oldScreen,self,skipCutScene)
     if not skipCutScene then currentScreen = transitionScreen end
-    Music.switch("Start")
+    --Music.switch("Start")
 end
 
 PackItem = class(Panel)
