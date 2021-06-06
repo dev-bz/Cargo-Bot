@@ -3,6 +3,7 @@ c.build
 .cide
 .c4droid
 sfxr120
+data
 log.txt
 *.bak
 *.apk
