@@ -44,11 +44,12 @@ void initPhysicsLib(lua_State *L);
 void freePhysics(lua_State *L);
 void drawPhysics(lua_State *L);
 // #define FILLSIZE 512.0f void ResizeGL(int w, int h);
-void InitLua(lua_State *L);
+void InitLua(lua_State *L, struct engine *engine);
 extern unsigned int d_makeTextureFromFile(const char *name, unsigned int *w, unsigned int *h);
+extern unsigned int d_makeTextureFromBuffer(const unsigned char *buf, size_t len, unsigned int *w, unsigned int *h);
 // GLuint tex = 0;
 lua_State *L;
-int RenderGLInit(const char *fontpath);
+int RenderGLInit(const char *fontpath, const unsigned char *ptr, size_t size);
 int drawText(unsigned char c, float *cood, float *pos, float height);
 void ResizeGL(int w, int h) {
 #ifndef FULL_SCREEN
@@ -276,7 +277,7 @@ int setContext(lua_State *L) {
 	}
 	return 0;
 }
-int density = 360;
+// int density = 360;
 int glRect(lua_State *L) {
 	int top = lua_gettop(L);
 	// printf("%i\n",top);
@@ -435,8 +436,26 @@ int gldraw(lua_State *L) {
 			// glReadBuffer(GL_BACK);
 			// glReadPixels(0, 0, nw, nh, GL_RGBA, GL_UNSIGNED_BYTE, nd);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, maps[t].w, maps[t].h, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData + maps[t].offset);
-		} else
+		} else {
+#ifdef RESOURCE_PATH
 			maps[t].tex = d_makeTextureFromFile(textureData + maps[t].offset, NULL, NULL);
+#else
+			if (current) {
+				AAsset *asset = AAssetManager_open(current->app->activity->assetManager, textureData + maps[t].offset + 7, AASSET_MODE_BUFFER);
+				const unsigned char *buf = (const unsigned char *)AAsset_getBuffer(asset);
+				size_t len = AAsset_getLength(asset);
+				maps[t].tex = d_makeTextureFromBuffer(buf, len, NULL, NULL);
+				AAsset_close(asset);
+			} else {
+				unsigned int ret = 0;
+				char tmp[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+				glGenTextures(1, &ret);
+				glBindTexture(GL_TEXTURE_2D, ret);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, 4, 4, 0, GL_ALPHA, GL_UNSIGNED_BYTE, tmp);
+				glBindTexture(GL_TEXTURE_2D, 0);
+			}
+#endif
+		}
 	}
 	glBindTexture(GL_TEXTURE_2D, maps[t].tex);
 	// if(!t)glColor4f(0.0f, 0.0f, 0.0f,0.45f);
@@ -508,7 +527,6 @@ int ellipse(lua_State *L) {
 	// /printf("%f,%f,%f\n",x,y,r);
 	return 0;
 }
-// char gpath[256];
 int loadTexture(lua_State *L) {
 	unsigned int ret = 0, iw, ih;
 	if (lua_isstring(L, -1)) {
@@ -516,14 +534,31 @@ int loadTexture(lua_State *L) {
 		// printf("%s\n",name);
 		if (strstr(name, "Cargo Bot:")) {
 			char tmp[260];
-			sprintf(tmp, "resources/assets/%s.png" /*, gpath*/, name + 10);
+			sprintf(tmp, "assets/%s.png", name + 10);
 			int i = textures;
 			while (--i >= 0) {
 				if (maps[i].w == 0 && maps[i].h == 0 && 0 == strcmp(textureData + maps[i].offset, tmp))
 					break;
 			}
 			if (i < 0) {
+#ifdef RESOURCE_PATH
 				ret = d_makeTextureFromFile(tmp, &iw, &ih);
+#else
+				if (current) {
+					AAsset *asset = AAssetManager_open(current->app->activity->assetManager, tmp + 7, AASSET_MODE_BUFFER);
+					const unsigned char *buf = (const unsigned char *)AAsset_getBuffer(asset);
+					size_t len = AAsset_getLength(asset);
+					ret = d_makeTextureFromBuffer(buf, len, &iw, &ih);
+					AAsset_close(asset);
+				} else {
+					char tmp[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+					glGenTextures(1, &ret);
+					ih = iw = 4;
+					glBindTexture(GL_TEXTURE_2D, ret);
+					glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, iw, ih, 0, GL_ALPHA, GL_UNSIGNED_BYTE, tmp);
+					glBindTexture(GL_TEXTURE_2D, 0);
+				}
+#endif
 				maps = realloc(maps, sizeof(struct TextureMap) * (1 + textures));
 				maps[textures].tex = ret;
 				maps[textures].w = maps[textures].h = 0;
@@ -605,6 +640,33 @@ int sound(lua_State *L) {
 	}
 	return 0;
 }
+int supportedOrientations(lua_State *L) { return 0; }
+void require_code(lua_State *L, const char *module, struct engine *engine, int preload) {
+	char path[256];
+#ifndef RESOURCE_PATH
+	if (strcmp(module, "def") && strcmp(module, "test"))
+		sprintf(path, "CargoDroid.codea/%s.lua", module);
+	else
+		sprintf(path, "preload/%s.lua", module);
+	AAsset *asset = AAssetManager_open(engine->app->activity->assetManager, path, AASSET_MODE_BUFFER);
+	const char *source = AAsset_getBuffer(asset);
+	off_t len = AAsset_getLength(asset);
+	luaL_loadbufferx(L, source, len, module, "t");
+	lua_pcall(L, 0, LUA_MULTRET, 0);
+	AAsset_close(asset);
+#else
+	if (strcmp(module, "def") && strcmp(module, "test"))
+		sprintf(path, "assets/CargoDroid.codea/%s.lua", module);
+	else
+		sprintf(path, "assets/preload/%s.lua", module);
+	luaL_loadfile(L, path);
+	lua_pcall(L, 0, LUA_MULTRET, 0);
+#endif
+	if (preload) {
+		sprintf(path, "package.preload['%s']=print", module);
+		luaL_dostring(L, path);
+	}
+}
 int hasError = 0;
 #define registerFunc(func)      \
 	lua_getglobal(L, #func);      \
@@ -613,7 +675,7 @@ int hasError = 0;
 		lua_setglobal(L, #func);    \
 	}                             \
 	lua_pop(L, 1)
-void InitLua(lua_State *L) {
+void InitLua(lua_State *L, struct engine *engine) {
 	initPhysicsLib(L);
 	registerFunc(setContext);
 	registerFunc(glRect);
@@ -632,23 +694,19 @@ void InitLua(lua_State *L) {
 	registerFunc(ellipse);
 	registerFunc(loadTexture);
 	registerFunc(sound);
+	registerFunc(supportedOrientations);
+#undef registerFunc
 	luaL_openlibs(L);
 	lua_settop(L, 0);
-	/**int ok=luaL_loadfile(L,"E:/T1/assets/test2.lua");
-	if(ok==0){
-	lua_getglobal(L,"debug");
-	lua_getfield(L,-1,"traceback");
-	lua_remove(L,-2);
-	lua_insert(L,-2);
-	lua_pcall(L, 0, 0, -2);
-	}*/
-	/*char env[256];
-	sprintf(env, "density=\"%d\"", density);
-	luaL_dostring(L, env);
-	sprintf(env, "gpath=\"%s\"", gpath);
-	luaL_dostring(L, env);
-	sprintf(env, "%s/png/test.lua", gpath);*/
-	luaL_dofile(L, "resources/png/test.lua");
+//#ifndef RESOURCE_PATH
+#define require_code(n) n,
+	const char *requires[] = {"def", require_code("IO") require_code("Tweener") require_code("Events") require_code("Table") require_code("PositionObj") require_code("RectObj") require_code("SpriteObj") require_code("ShadowObj") require_code("Button") require_code("Command") require_code("Sounds") require_code("ABCMusic") require_code("ABCMusicData") require_code("Music") require_code("Panel") require_code("Smoke") require_code("Crate") require_code("BaseStage") require_code("Stage") require_code("StagePhysics") require_code("Goal") require_code("Toolbox") require_code("Program") require_code("Register") require_code("StageWall") require_code("Claw") require_code("Pile") require_code("Screen") require_code("WinScreen") require_code("CreditsScreen") require_code("ScrollingTexture") require_code("ShakeDetector") require_code("HowScreen") require_code("BaseSelect") require_code("LevelSelect") require_code("PackSelect") require_code("StartScreen") require_code("TransitionScreen") require_code("SplashScreen") require_code("Level") require_code("Tutorial") require_code("Levels") require_code("Main") require_code("Stack") require_code("Popover") NULL};
+#undef require_code
+	for (int i = 0; requires[i]; ++i) {
+		require_code(L, requires[i], engine, 1);
+	}
+	//#endif
+	require_code(L, "test", engine, 0);
 	if (lua_gettop(L)) {
 		lua_setglobal(L, "RUNINFO");
 		hasError = 1;
@@ -766,7 +824,13 @@ static int engine_init_display(struct engine *engine) {
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	RenderGLInit("resources/Roboto-Black.ttf"); //("/system/fonts/DroidSans-Bold.ttf");
+#ifdef RESOURCE_PATH
+	RenderGLInit("assets/Roboto-Black.ttf", NULL, 0);
+#else
+	AAsset *asset = AAssetManager_open(engine->app->activity->assetManager, "Roboto-Black.ttf", AASSET_MODE_BUFFER);
+	RenderGLInit(NULL, AAsset_getBuffer(asset), AAsset_getLength(asset));
+	AAsset_close(asset);
+#endif
 	if (NULL == L) {
 		L = luaL_newstate();
 		if (engine->app->activity->internalDataPath) {
@@ -777,7 +841,7 @@ static int engine_init_display(struct engine *engine) {
 			lua_pushstring(L, engine->app->activity->externalDataPath);
 			lua_setglobal(L, "EXTERNALDATAPATH");
 		}
-		InitLua(L);
+		InitLua(L, engine);
 	}
 	ResizeGL(w, h);
 	return 0;
@@ -1070,15 +1134,12 @@ unsigned int timeGet() {
 #include <unistd.h>
 void android_main(struct android_app *state) {
 	struct engine engine;
-// Make sure glue isn't stripped.
-// strcpy(gpath, state->activity->externalDataPath);
-// strcpy(gpath, "/sdcard/cargo-bot/cargo-bot");
-// strcat(gpath, "/resources/");
-#ifndef EXPORT_TO_APK
-	chdir("/storage/emulated/0/cargo-bot/Cargo-bot");
-#endif
-	density = AConfiguration_getDensity(state->config);
+	// Make sure glue isn't stripped.
 	app_dummy();
+#ifdef RESOURCE_PATH
+	chdir(RESOURCE_PATH);
+#endif
+	// density = AConfiguration_getDensity(state->config);
 	// SDL_Init( SDL_INIT_VIDEO );
 	memset(&engine, 0, sizeof(engine));
 	engine.time = 0.05f;

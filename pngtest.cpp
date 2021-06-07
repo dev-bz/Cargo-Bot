@@ -6,7 +6,7 @@ struct pnginfo {
 	unsigned char *d;
 };
 void freepng(pnginfo png);
-pnginfo readpng__001(const char *name);
+pnginfo readpng__001(const char *name,const unsigned char *data, size_t len);
 extern "C" unsigned int d_makeTexture(int w, int h, void *d, int size) {
 	unsigned int Format = GL_RGB;
 	if (size == 4) {
@@ -61,10 +61,23 @@ extern "C" unsigned int d_makeTexture(int w, int h, void *d, int size) {
 	return 0;
 }
 extern "C" unsigned int d_makeTextureFromFile(const char *name, unsigned int *w, unsigned int *h) {
-	pnginfo png = readpng__001(name);
+	pnginfo png = readpng__001(name,nullptr,0);
 	if (png.d == 0)
 		return 0;
 	printf("PNG (%s)size is %i\n", name, png.s);
+	unsigned int ret = d_makeTexture(png.w, png.h, png.d, png.s);
+	freepng(png);
+	if (w)
+		*w = png.w;
+	if (h)
+		*h = png.h;
+	return ret;
+}
+extern "C" unsigned int d_makeTextureFromBuffer(const unsigned char *buf,size_t len, unsigned int *w, unsigned int *h) {
+	pnginfo png = readpng__001(nullptr,buf,len);
+	if (png.d == 0)
+		return 0;
+	printf("PNG (%p)size is %i\n", buf, png.s);
 	unsigned int ret = d_makeTexture(png.w, png.h, png.d, png.s);
 	freepng(png);
 	if (w)

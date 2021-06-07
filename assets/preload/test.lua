@@ -1,4 +1,4 @@
-package.path=string.format("resources/png/?.lua;resources/assets/CargoDroid.codea/?.lua");
+package.path=string.format("assets/preload/?.lua;assets/CargoDroid.codea/?.lua");
 --package.path="E:\\usr\\GLTest\\?.lua;E:\\usr\\Game\\assets\\CargoDroid.codea\\?.lua"
 --package.path="E:\\usr\\GLTest\\?.lua;E:\\usr\\Game\\?.lua"
 DeltaTime=0.05
@@ -37,9 +37,6 @@ function isRecording()return nil end
 function startRecording()end
 function stopRecording()end
 function background()end
-function supportedOrientations(mode)
-	print("supportedOrientations-"..mode)
-end
 function displayMode(mode)
 	print("displayMode-"..mode)
 end

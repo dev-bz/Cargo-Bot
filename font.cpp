@@ -6,10 +6,10 @@ static GLuint g_ftex = 0;
 static stbtt_bakedchar g_cdata[96];
 const int texSize = 256;
 const int fontHeight = 36;
-const int fontBottom=30;
+const int fontBottom = 30;
 static float scale = 1.0f / texSize;
 extern float motion;
-extern "C" float charScale(int c) {return (c < 32 || c >= 128) ? 0.0f : g_cdata[c - 32].xadvance / fontHeight; }
+extern "C" float charScale(int c) { return (c < 32 || c >= 128) ? 0.0f : g_cdata[c - 32].xadvance / fontHeight; }
 extern "C" int drawText(unsigned char c, float *cood, float *pos, float size) {
 	glBindTexture(GL_TEXTURE_2D, g_ftex);
 	if (c > 32 && c < 128) {
@@ -27,16 +27,15 @@ extern "C" int drawText(unsigned char c, float *cood, float *pos, float size) {
 		// pos[4] += si;
 		// pos[6] += si; // sc * t.xoff;
 		// pos[2] = pos[0] = pos[4] + sc * (t.x1 - t.x0);
-		pos[2]-=si;pos[0]=pos[2];
+		pos[2] -= si;
+		pos[0] = pos[2];
 		pos[4] = pos[6] = pos[0] - sc * (t.x1 - t.x0);
 		pos[1] += sc * (-fontBottom - t.yoff);
 		pos[7] += sc * (-fontBottom - t.yoff);
 		pos[3] = pos[5] = pos[1] - sc * (t.y1 - t.y0);
 	} else {
-		pos[0]=pos[2]=
-		pos[1]=pos[7]=768;
-		pos[4]=pos[6]=
-		pos[3]=pos[5]=0;
+		pos[0] = pos[2] = pos[1] = pos[7] = 768;
+		pos[4] = pos[6] = pos[3] = pos[5] = 0;
 		cood[0] = 1;
 		cood[1] = 0;
 		cood[2] = 1;
@@ -48,32 +47,34 @@ extern "C" int drawText(unsigned char c, float *cood, float *pos, float size) {
 	}
 	return g_ftex;
 }
-extern "C" int RenderGLInit(const char *fontpath) {
+extern "C" int RenderGLInit(const char *fontpath, const unsigned char *ptr, size_t size) {
 	// Load font.
-	FILE *fp = fopen(fontpath, "rb");
-	if (!fp) {
-		return 0;
-	}
-	fseek(fp, 0, SEEK_END);
-	int size = (int)ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-	unsigned char *ttfBuffer = (unsigned char *)malloc(size);
-	if (!ttfBuffer) {
+	unsigned char *ttfBuffers = nullptr;
+	if (fontpath) {
+		FILE *fp = fopen(fontpath, "rb");
+		if (!fp) {
+			return 0;
+		}
+		fseek(fp, 0, SEEK_END);
+		size = (int)ftell(fp);
+		fseek(fp, 0, SEEK_SET);
+		ttfBuffers = (unsigned char *)malloc(size);
+		if (!ttfBuffers) {
+			fclose(fp);
+			return 0;
+		}
+		fread(ttfBuffers, 1, size, fp);
 		fclose(fp);
-		return 0;
+		fp = 0;
+		ptr = ttfBuffers;
 	}
-	fread(ttfBuffer, 1, size, fp);
-	fclose(fp);
-	fp = 0;
 	unsigned char *bmap = (unsigned char *)malloc(512 * 512);
 	if (!bmap) {
-		free(ttfBuffer);
+		if (ttfBuffers)
+			free(ttfBuffers);
 		return 0;
 	}
-	int off = stbtt_GetFontOffsetForIndex(ttfBuffer, 2); // stbtt_FindMatchingFont(ttfBuffer, "Arial", STBTT_MACSTYLE_BOLD);
-	if (off < 0)
-		off = 0;
-	stbtt_BakeFontBitmap(ttfBuffer, off, fontHeight, bmap, texSize, texSize, 32, 96, g_cdata);
+	stbtt_BakeFontBitmap(ptr, 0, fontHeight, bmap, texSize, texSize, 32, 96, g_cdata);
 	// scale=1.0f/256;
 	/*for(int i=0;i<512*512;++i){
 		bmap[i]=0xff;
@@ -121,11 +122,12 @@ extern "C" int RenderGLInit(const char *fontpath) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	// can free ttf_buffer at this point
-	free(ttfBuffer);
+	if (ttfBuffers)
+		free(ttfBuffers);
 	free(bmap);
 	return 1;
 }
-const char *testCode =R"lua(
+const char *testCode = R"lua(
 	if currentScreen and currentScreen.bodies then
 	  local mbodies = currentScreen.bodies
 	  local offset=0
