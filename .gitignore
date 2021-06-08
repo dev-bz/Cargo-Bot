@@ -4,6 +4,9 @@ c.build
 .c4droid
 sfxr120
 data
+bin
+gen
+libs
 log.txt
 *.bak
 *.apk

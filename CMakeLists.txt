@@ -14,15 +14,18 @@ target_link_directories(phys PUBLIC /sdcard/_ws/box2d_231/box2d/Box2D/c.build/Bo
 #target_link_options(phys PUBLIC -pie -Wl,--no-undefined)
 #target_link_libraries(phys PRIVATE lua_static box2d)
 
+add_library(cargo_a STATIC font.cpp sfxr.cpp loadpng.cpp pngtest.cpp b64/cdecode.c)
+target_link_options(cargo_a PUBLIC -Wl,--no-undefined)
+target_link_libraries(cargo_a PUBLIC native_app_glue EGL GLESv1_CM log android png z phys box2d openal OpenSLES)
 
-add_library(cargo SHARED cCode.c font.cpp sfxr.cpp loadpng.cpp pngtest.cpp b64/cdecode.c)
+
+add_library(cargo SHARED cCode.c)
 if(NOT CIDE)
 target_compile_definitions(cargo PRIVATE RESOURCE_PATH="${PROJECT_SOURCE_DIR}")
 endif()
 target_include_directories(cargo PRIVATE ${LUA_INC})
 target_link_directories(cargo PUBLIC ${LUA_LIB})
-target_link_options(cargo PUBLIC -Wl,--no-undefined)
-target_link_libraries(cargo PUBLIC native_app_glue EGL GLESv1_CM log android png z phys lua_static box2d openal OpenSLES)
+target_link_libraries(cargo PUBLIC cargo_a lua_static)
 if(CIDE)
 set(CMAKE_SHARED_LIBRARY_PREFIX)
 set(CMAKE_SHARED_LIBRARY_SUFFIX .out)
@@ -31,6 +34,13 @@ else()
 set_target_properties(cargo PROPERTIES OUTPUT_NAME box)
 endif()
 
+if(NOT CIDE)
+add_library(cargo_rt SHARED cCode.c)
+target_include_directories(cargo_rt PRIVATE ${LUA_INC})
+target_link_directories(cargo_rt PUBLIC ${LUA_LIB})
+target_link_libraries(cargo_rt PUBLIC cargo_a lua_static)
+set_target_properties(cargo_rt PROPERTIES OUTPUT_NAME application)
+endif()
 
 add_executable(cargos test.cpp )
 target_link_options(cargos PUBLIC -pie)
@@ -47,7 +57,13 @@ set_target_properties(cargos PROPERTIES OUTPUT_NAME a.out)
 #set(LIB true)
 #if(LIB)
 install(TARGETS cargo DESTINATION ${PROJECT_NAME})
+#install(TARGETS cargo_rt DESTINATION ${PROJECT_NAME})
 #else()
 install(TARGETS cargos DESTINATION ${PROJECT_NAME})
 #endif()
+add_custom_command(TARGET cargo_rt POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E make_directory libs/arm64-v8a
+	COMMAND ${CMAKE_STRIP} -s ${PROJECT_BINARY_DIR}/libapplication.so -o libs/arm64-v8a/libapplication.so
+	WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+	COMMENT "install Android library(s)")
 endif()

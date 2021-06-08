@@ -45,8 +45,7 @@ void freePhysics(lua_State *L);
 void drawPhysics(lua_State *L);
 // #define FILLSIZE 512.0f void ResizeGL(int w, int h);
 void InitLua(lua_State *L, struct engine *engine);
-extern unsigned int d_makeTextureFromFile(const char *name, unsigned int *w, unsigned int *h);
-extern unsigned int d_makeTextureFromBuffer(const unsigned char *buf, size_t len, unsigned int *w, unsigned int *h);
+extern unsigned int d_makeTextureFrom(const char *name, const unsigned char *buf, size_t len, unsigned int *w, unsigned int *h);
 // GLuint tex = 0;
 lua_State *L;
 int RenderGLInit(const char *fontpath, const unsigned char *ptr, size_t size);
@@ -438,13 +437,13 @@ int gldraw(lua_State *L) {
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, maps[t].w, maps[t].h, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData + maps[t].offset);
 		} else {
 #ifdef RESOURCE_PATH
-			maps[t].tex = d_makeTextureFromFile(textureData + maps[t].offset, NULL, NULL);
+			maps[t].tex = d_makeTextureFrom(textureData + maps[t].offset, NULL, 0, NULL, NULL);
 #else
 			if (current) {
 				AAsset *asset = AAssetManager_open(current->app->activity->assetManager, textureData + maps[t].offset + 7, AASSET_MODE_BUFFER);
 				const unsigned char *buf = (const unsigned char *)AAsset_getBuffer(asset);
 				size_t len = AAsset_getLength(asset);
-				maps[t].tex = d_makeTextureFromBuffer(buf, len, NULL, NULL);
+				maps[t].tex = d_makeTextureFrom(NULL, buf, len, NULL, NULL);
 				AAsset_close(asset);
 			} else {
 				unsigned int ret = 0;
@@ -453,6 +452,7 @@ int gldraw(lua_State *L) {
 				glBindTexture(GL_TEXTURE_2D, ret);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, 4, 4, 0, GL_ALPHA, GL_UNSIGNED_BYTE, tmp);
 				glBindTexture(GL_TEXTURE_2D, 0);
+				maps[t].tex = ret;
 			}
 #endif
 		}
@@ -542,13 +542,13 @@ int loadTexture(lua_State *L) {
 			}
 			if (i < 0) {
 #ifdef RESOURCE_PATH
-				ret = d_makeTextureFromFile(tmp, &iw, &ih);
+				ret = d_makeTextureFrom(tmp, NULL, 0, &iw, &ih);
 #else
 				if (current) {
 					AAsset *asset = AAssetManager_open(current->app->activity->assetManager, tmp + 7, AASSET_MODE_BUFFER);
 					const unsigned char *buf = (const unsigned char *)AAsset_getBuffer(asset);
 					size_t len = AAsset_getLength(asset);
-					ret = d_makeTextureFromBuffer(buf, len, &iw, &ih);
+					ret = d_makeTextureFrom(NULL, buf, len, &iw, &ih);
 					AAsset_close(asset);
 				} else {
 					char tmp[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -698,14 +698,14 @@ void InitLua(lua_State *L, struct engine *engine) {
 #undef registerFunc
 	luaL_openlibs(L);
 	lua_settop(L, 0);
-//#ifndef RESOURCE_PATH
+#ifndef RESOURCE_PATH
 #define require_code(n) n,
 	const char *requires[] = {"def", require_code("IO") require_code("Tweener") require_code("Events") require_code("Table") require_code("PositionObj") require_code("RectObj") require_code("SpriteObj") require_code("ShadowObj") require_code("Button") require_code("Command") require_code("Sounds") require_code("ABCMusic") require_code("ABCMusicData") require_code("Music") require_code("Panel") require_code("Smoke") require_code("Crate") require_code("BaseStage") require_code("Stage") require_code("StagePhysics") require_code("Goal") require_code("Toolbox") require_code("Program") require_code("Register") require_code("StageWall") require_code("Claw") require_code("Pile") require_code("Screen") require_code("WinScreen") require_code("CreditsScreen") require_code("ScrollingTexture") require_code("ShakeDetector") require_code("HowScreen") require_code("BaseSelect") require_code("LevelSelect") require_code("PackSelect") require_code("StartScreen") require_code("TransitionScreen") require_code("SplashScreen") require_code("Level") require_code("Tutorial") require_code("Levels") require_code("Main") require_code("Stack") require_code("Popover") NULL};
 #undef require_code
 	for (int i = 0; requires[i]; ++i) {
 		require_code(L, requires[i], engine, 1);
 	}
-	//#endif
+#endif
 	require_code(L, "test", engine, 0);
 	if (lua_gettop(L)) {
 		lua_setglobal(L, "RUNINFO");
