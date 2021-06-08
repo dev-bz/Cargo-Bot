@@ -108,7 +108,8 @@ function LevelSelect:bindEvents()
 end
 
 function LevelSelect:showing(oldScreen,skipCutScene)
-    transitionScreen:start(oldScreen,self,skipCutScene)
+    self:unbind()
+    transitionScreen:start(oldScreen,LevelSelect(self.name,self.score),skipCutScene)
     if not skipCutScene then currentScreen = transitionScreen end
     Music.switch("Start")
 end
