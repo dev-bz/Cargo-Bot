@@ -699,14 +699,10 @@ void InitLua(lua_State *L, struct engine *engine) {
 	luaL_openlibs(L);
 	lua_settop(L, 0);
 #ifndef RESOURCE_PATH
-#define require_code(n) n,
-	const char *requires[] = {"def", require_code("IO") require_code("Tweener") require_code("Events") require_code("Table") require_code("PositionObj") require_code("RectObj") require_code("SpriteObj") require_code("ShadowObj") require_code("Button") require_code("Command") require_code("Sounds") require_code("ABCMusic") require_code("ABCMusicData") require_code("Music") require_code("Panel") require_code("Smoke") require_code("Crate") require_code("BaseStage") require_code("Stage") require_code("StagePhysics") require_code("Goal") require_code("Toolbox") require_code("Program") require_code("Register") require_code("StageWall") require_code("Claw") require_code("Pile") require_code("Screen") require_code("WinScreen") require_code("CreditsScreen") require_code("ScrollingTexture") require_code("ShakeDetector") require_code("HowScreen") require_code("BaseSelect") require_code("LevelSelect") require_code("PackSelect") require_code("StartScreen") require_code("TransitionScreen") require_code("SplashScreen") require_code("Level") require_code("Tutorial") require_code("Levels") require_code("Main") require_code("Stack") require_code("Popover") NULL};
-#undef require_code
-	for (int i = 0; requires[i]; ++i) {
-		require_code(L, requires[i], engine, 1);
-	}
+	const char *requires[] = {"def", "test", "IO", "Tweener", "Events", "Table", "PositionObj", "RectObj", "SpriteObj", "ShadowObj", "Button", "Command", "Sounds", "ABCMusic", "ABCMusicData", "Music", "Panel", "Smoke", "Crate", "BaseStage", "Stage", "StagePhysics", "Goal", "Toolbox", "Program", "Register", "StageWall", "Claw", "Pile", "Screen", "WinScreen", "CreditsScreen", "ScrollingTexture", "ShakeDetector", "HowScreen", "BaseSelect", "LevelSelect", "PackSelect", "StartScreen", "TransitionScreen", "SplashScreen", "Level", "Tutorial", "Levels", "Main", "Stack", "Popover", NULL};
+	for (int i = 0; requires[i]; ++i)
+		require_code(L, requires[i], engine, 0);
 #endif
-	require_code(L, "test", engine, 0);
 	if (lua_gettop(L)) {
 		lua_setglobal(L, "RUNINFO");
 		hasError = 1;

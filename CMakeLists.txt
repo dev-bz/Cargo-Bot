@@ -39,7 +39,7 @@ add_library(cargo_rt SHARED cCode.c)
 target_include_directories(cargo_rt PRIVATE ${LUA_INC})
 target_link_directories(cargo_rt PUBLIC ${LUA_LIB})
 target_link_libraries(cargo_rt PUBLIC cargo_a lua_static)
-set_target_properties(cargo_rt PROPERTIES OUTPUT_NAME application)
+set_target_properties(cargo_rt PROPERTIES OUTPUT_NAME main)
 endif()
 
 add_executable(cargos test.cpp )
@@ -63,7 +63,7 @@ install(TARGETS cargos DESTINATION ${PROJECT_NAME})
 #endif()
 add_custom_command(TARGET cargo_rt POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E make_directory libs/arm64-v8a
-	COMMAND ${CMAKE_STRIP} -s ${PROJECT_BINARY_DIR}/libapplication.so -o libs/arm64-v8a/libapplication.so
+	COMMAND ${CMAKE_STRIP} -s ${PROJECT_BINARY_DIR}/libmain.so -o libs/arm64-v8a/libmain.so
 	WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 	COMMENT "install Android library(s)")
 endif()

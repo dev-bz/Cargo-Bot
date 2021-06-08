@@ -1,6 +1,3 @@
-package.path=string.format("assets/preload/?.lua;assets/CargoDroid.codea/?.lua");
---package.path="E:\\usr\\GLTest\\?.lua;E:\\usr\\Game\\assets\\CargoDroid.codea\\?.lua"
---package.path="E:\\usr\\GLTest\\?.lua;E:\\usr\\Game\\?.lua"
 DeltaTime=0.05
 ElapsedTime=0.0
 WIDTH=768
@@ -257,12 +254,8 @@ function noSmooth()end
 eMode=0
 function ellipseMode(mode)eMode=mode end
 
---[[function stroke(r, g, b, a)
-cstroke(r,g,b,a)
-end]]
 function pushStyle()end
 function popStyle()end
---function color(r,g,b,a) return {r,g,b,a} end
 rMode=0
 function rectMode(mode)rMode=mode end
 function noStroke()
@@ -284,24 +277,11 @@ function rect(x,y,w,h)
 		end
 		glRect(sWidth,x,y,w,h)
 end
---Java End]]
--- require 'data'
 
---datas={}
 function readLocalData(path)
 	if not datas then
 	datas={}
 	end
-	--[[
-	if not ldatas then
-	ldatas=true
-	for i,v in pairs(datas) do
-	datas[i]=[-[(,)(,)(,)(,)(,)(,)(,)(,)
-(,)(,)(,)(,)(,)(,)(,)(,)
-(,)(,)(,)(,)(,)(,)(,)(,)
-(,)(,)(,)(,)(,)]-]
-    end
-	end--]]
 	if datas[path] then
 		return datas[path]
 	else
@@ -318,20 +298,9 @@ function readLocalData(path)
 			return datas[path]
 		end
 	end
-	--[[
-	if path:sub(#path-7)=="solution" then
-datas[path]=[ [(,)(,)(,)(,)(,)(,)(,)(,)
-(,)(,)(,)(,)(,)(,)(,)(,)
-(,)(,)(,)(,)(,)(,)(,)(,)
-(,)(,)(,)(,)(,)] ]
-return "" --datas[fn]
-	end
-	return 0]]
 end
 function saveLocalData(path,value)
 	datas[path]=value
-	--SAVE_TO="#" .. path
-	--SAVE_DATA="#"..datas[path]
 	local gd = io.open((INTERNALDATAPATH or '.')..'/game-data','rb')
 	if nil ~= gd then io.close(gd) else os.execute('mkdir -p '..(INTERNALDATAPATH or '.')..'/game-data') end
 	local file = io.open((INTERNALDATAPATH or '.')..'/game-data/'..path, "w+b")
@@ -348,7 +317,6 @@ running=true
 function openURL(addr)
 	running=nil
 end
-require "def"
 mesh=class()
 function mesh:addRect(x,y,w,h,angle)
 	if not self.m then self.m={} end
@@ -501,49 +469,3 @@ v3=v1+v2
 v3=v3:rotate(1)
 vec2.print(v3)
 end
---require 'vec2'
-require'IO'
-require "Tweener"
-require "Events"
-require "Table"
-require "PositionObj"
-require "RectObj"
-require "SpriteObj"
-require "ShadowObj"
-require "Button"
-require 'Command'
-require "Sounds"
-require "ABCMusic"
-require "ABCMusicData"
-require "Music"
-require "Panel"
-require 'Smoke'
-require 'Crate'
-require 'BaseStage'
-require 'Stage'
-require 'StagePhysics'
-require 'Goal'
-require 'Toolbox'
-require 'Program'
-require 'Register'
-require 'StageWall'
-require 'Claw'
-require 'Pile'
-require "Screen"
-require 'WinScreen'
-require 'CreditsScreen'
-require 'ScrollingTexture'
-require 'ShakeDetector'
-require 'HowScreen'
-require "BaseSelect"
-require 'LevelSelect'
-require "PackSelect"
-require "StartScreen"
-require "TransitionScreen"
-require "SplashScreen"
-require 'Level'
-require 'Tutorial'
-require "Levels"
-require "Main"
-require 'Stack'
-require 'Popover'
