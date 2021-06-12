@@ -43,6 +43,7 @@ set_target_properties(cargo_rt PROPERTIES OUTPUT_NAME main)
 endif()
 
 add_executable(cargos test.cpp )
+target_compile_options(cargos PUBLIC -DNDEBUG -std=c++17 -fPIC -fvisibility=hidden)
 target_link_options(cargos PUBLIC -pie)
 
 target_include_directories(cargos PUBLIC ${LUA_INC})

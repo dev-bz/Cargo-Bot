@@ -10,7 +10,7 @@ function setup()
     --if not DEV_MODE then displayMode(FULLSCREEN_NO_BUTTONS) end
     parameter.watch("dt")
     elapsedTimes = {}
-    
+
     sounds = Sounds()
     checkLevelOrder()
 end
@@ -21,9 +21,9 @@ function draw()
     table.insert(elapsedTimes,ElapsedTime)
     while #elapsedTimes > 50 do table.remove(elapsedTimes,1) end
     MY_DELTA_TIME = (elapsedTimes[#elapsedTimes] - elapsedTimes[1]) / (#elapsedTimes - 1)
-    
+
     background()
-    
+
     if not currentScreen then
         currentScreen = SplashScreen()
         --currentScreen = Level(levels[35])
@@ -31,7 +31,7 @@ function draw()
         currentScreen:bind()
         transitionScreen = TransitionScreen() -- global variable
     end
-    
+
     currentScreen:draw()
     currentScreen:tick()
     Tweener.run()

@@ -104,13 +104,12 @@ function textSize(str)
 	local mx=0
 	local st=0
 	local ds=1
-	local x=0.0
 	local o=0.0
 	local x=0.0
 	if type(str)=="number" then
 		local tmp=tostring(str)
 		for i=1,#tmp,1 do
-			v=tmp:byte(i)
+			local v=tmp:byte(i)
 			mx=mx+charScales[v]*fsize
 		end
 		lc=1
@@ -155,7 +154,6 @@ function text(str,x,y)
 	local ly=y+th
 	local bx=lx
 	local ds=1
-	local de=0
 	local st=0
 	local ls=0
 	local oo=0.0
@@ -170,14 +168,14 @@ function text(str,x,y)
 	--glRect(0,lx,ly,fsize*0.45,fsize)
 		local num=tostring(str)
 		for i=1,#num,1 do
-			tc=num:byte(i)
-			ws=charScales[tc]*fsize
+			local tc=num:byte(i)
+			local ws=charScales[tc]*fsize
 			glRectText(tc,0,lx,ly,ws,fsize)
 			lx=lx+ws
 		end
 	else
 		for i=1,#str,1 do
-			v=str:byte(i)
+			local v=str:byte(i)
 			if v > 223 then v=127 elseif v>127 then v=1 end
 			xx=xx+charScales[v]*fsize
 			if v<=32 then
@@ -186,9 +184,9 @@ function text(str,x,y)
 			end
 			if v==10 then
 				for j=ds,st,1 do
-					tc=str:byte(j)
+					local tc=str:byte(j)
 					if tc > 223 then tc=127 elseif tc>127 then tc=1 end
-					ws=charScales[tc]*fsize
+					local ws=charScales[tc]*fsize
 					if tc>32 then
 						glRectText(tc,0,lx,ly,ws,fsize)
 					end
@@ -206,9 +204,9 @@ function text(str,x,y)
 					oo=xx-charScales[v]*fsize
 				end
 				for j=ds,st,1 do
-					tc=str:byte(j)
+					local tc=str:byte(j)
 					if tc > 223 then tc=127 elseif tc>127 then tc=1 end
-					ws=charScales[tc]*fsize
+					local ws=charScales[tc]*fsize
 					if tc>32 then
 						glRectText(tc,0,lx,ly,ws,fsize)
 					end
@@ -225,9 +223,9 @@ function text(str,x,y)
 			end
 		end
 		for j=ds,#str,1 do
-			tc=str:byte(j)
+			local tc=str:byte(j)
 			if tc > 223 then tc=127 elseif tc>127 then tc=1 end
-			ws=charScales[tc]*fsize
+			local ws=charScales[tc]*fsize
 			if tc>32 then
 				glRectText(tc,0,lx,ly,ws,fsize)
 			end
@@ -237,11 +235,10 @@ function text(str,x,y)
 end
 function spriteSize(name)
 	local tex=Texture[name]
-	local tid
+	
 	if not tex then tex={} end
-	tid=tex.t
-	if not tid then
-		ww,hh,tid=loadTexture(name)
+	if not tex.t then
+		local ww,hh,tid=loadTexture(name)
 		Texture[name]={t=tid,w=ww,h=hh}
 		--print(ww,hh)
 	end
@@ -294,7 +291,6 @@ function readLocalData(path)
 			else
 				datas[path]=content
 			end
-			
 			return datas[path]
 		end
 	end
